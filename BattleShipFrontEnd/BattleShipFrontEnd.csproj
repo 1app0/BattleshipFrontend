@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>netcoreapp3.1</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Remove="Pages\Login\**" />
+      <Compile Remove="Pages\Auth\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Pages\Login\**" />
+      <EmbeddedResource Remove="Pages\Auth\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Pages\Login\**" />
+      <None Remove="Pages\Auth\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Remove="Pages\Login\**" />
+      <Content Remove="Pages\Auth\**" />
+      <Content Remove="Pages\Login.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Pages\Login\LoginLayout.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="BlazorStyled" Version="3.0.0" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,41 @@
+﻿<Styled @bind-Classname="@backgroundColor">
+    position: relative;
+    width : 30px;
+    height : 30px;
+    background-color: @colorCss;
+    &:hover {
+    background-color: #0063e6cc;
+    }
+</Styled>
+
+<div class="@backgroundColor" @onclick="@(() => HandleClick(0))" 
+     @oncontextmenu="@(() => HandleClick(1))" 
+     @oncontextmenu:preventDefault="true"></div>
+@code {
+    [Parameter] 
+    public int x { get; set; }
+    [Parameter]
+    public int y { get; set; }
+    [Parameter]
+    public bool enemyBoard { get; set; }
+    [Parameter]
+    public EventCallback<double> OnClicked { get; set; }
+    [Parameter]
+    public bool colorBlue { get; set; }
+    [Parameter]
+    public bool colorRed { get; set; }
+    [Parameter]
+    public bool colorGrey { get; set; }
+
+    private string colorCss => colorBlue ? "blue" : colorRed ? "red" : colorGrey ? "slategray" : "deepskyblue";
+
+    private string backgroundColor { get; set; }
+
+    public void HandleClick(int mButton) {
+        double coord = y * 10 + x;
+        if (mButton == 1) {
+            coord += 0.5;
+        }
+        OnClicked.InvokeAsync(coord);
+    }
+}

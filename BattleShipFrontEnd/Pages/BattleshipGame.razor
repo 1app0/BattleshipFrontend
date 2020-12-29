@@ -1,0 +1,305 @@
+﻿@page "/Game"
+@using BattleShipFrontEnd.Data.BattleshipData
+@using BattleShipFrontEnd.Data.Helpers
+@using BattleShipFrontEnd.Data.LoginData
+@using BattleShipFrontEnd.Models
+@inject IGameTileService GameTileService
+@inject ICloudBattleShipAccess BattleShipAccess
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@if (gameTilesPlayer == null || gameTilesEnemy == null) {
+	<div class="heading3">
+		<span>L</span>
+		<span>O</span>
+		<span>A</span>
+		<span>D</span>
+		<span>I</span>
+		<span>N</span>
+		<span>G</span>
+		<span>.</span>
+		<span>.</span>
+		<span>.</span>
+	</div>
+}
+else {
+	<div id="heading2">
+		<span>B</span>
+		<span>a</span>
+		<span>t</span>
+		<span>t</span>
+		<span>l</span>
+		<span>e</span>
+		<span>s</span>
+		<span>h</span>
+		<span>i</span>
+		<span>p</span>
+		<span></span>
+		<span>P</span>
+		<span>r</span>
+		<span>o</span>
+	</div>
+
+
+
+	<div id="allBoards">
+		<div id="board">
+			<table>
+				<tr>
+					<th class="numbers"></th>
+					<th class="numbers">0</th>
+					<th class="numbers">1</th>
+					<th class="numbers">2</th>
+					<th class="numbers">3</th>
+					<th class="numbers">4</th>
+					<th class="numbers">5</th>
+					<th class="numbers">6</th>
+					<th class="numbers">7</th>
+					<th class="numbers">8</th>
+					<th class="numbers">9</th>
+				</tr>
+				@for (int yy = 0; yy < rows; yy++) {
+					<tr>
+						<th class="letters">@lettersArray[yy]</th>
+						@for (int xx = 0; xx < columns; xx++) {
+							GameTile gameTile = gameTilesPlayer[yy * columns + xx];
+							<td>
+								<GameTileCSS x=@gameTile.X
+								             y=@gameTile.Y
+								             enemyBoard=@gameTile.EnemyBoard
+								             OnClicked=@HandleClickPlayerBoard
+								             colorBlue=@gameTile.ColorBlue
+								             colorRed=@gameTile.ColorRed
+								             colorGrey=@gameTile.ColorGrey></GameTileCSS></td>
+						}
+					</tr>
+				}
+			</table>
+		</div>
+
+		<div id="boardRight">
+			<table>
+				<tr>
+					<th class="numbers"></th>
+					<th class="numbers">0</th>
+					<th class="numbers">1</th>
+					<th class="numbers">2</th>
+					<th class="numbers">3</th>
+					<th class="numbers">4</th>
+					<th class="numbers">5</th>
+					<th class="numbers">6</th>
+					<th class="numbers">7</th>
+					<th class="numbers">8</th>
+					<th class="numbers">9</th>
+				</tr>
+
+				@for (int yy = 0; yy < rows; yy++) {
+					<tr>
+						<th class="letters">@lettersArray[yy]</th>
+						@for (int xx = 0; xx < columns; xx++) {
+							GameTile gameTile = gameTilesEnemy[yy * columns + xx];
+							<td>
+								<GameTileCSS x=@gameTile.X
+								             y=@gameTile.Y
+								             enemyBoard=@gameTile.EnemyBoard
+								             OnClicked=@HandleClickEnemyBoard
+								             colorBlue=@gameTile.ColorBlue
+								             colorRed=@gameTile.ColorRed
+								             colorGrey=@gameTile.ColorGrey></GameTileCSS></td>
+						}
+					</tr>
+				}
+			</table>
+		</div>
+		<p class="boardInstructions">@shipPlacementInstruction</p>
+		<p class="boardInstructions">@shootingInstruction</p>
+		<p class="boardInstructions">@saveGameMessage</p>
+		<button class="btn btn-primary" id="buttonSaveGame" @onclick="SaveGame">Save and Logout</button>
+	</div>
+}
+
+@code {
+	private List<Char> lettersArray { get; set; } = new List<char>{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'};
+	private const int rows = 10;
+	private const int columns = 10;
+	private int shipTypePlayer = 5;
+	private bool canPlaceShip = true;
+	private bool canStartShooting = false;
+	private bool playerWin = false;
+	private string shipPlacementInstruction;
+	private string shootingInstruction;
+	private string saveGameMessage;
+	private GameTile[] gameTilesPlayer;
+	private GameTile[] gameTilesEnemy;
+	[CascadingParameter]
+	private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+	protected override async Task OnInitializedAsync() {
+		var authState = await authenticationStateTask;
+		var user = authState.User;
+		string username = user.Identity.Name;
+		bool gameSaved = await BattleShipAccess.CheckForSavedGame(username);
+		if (gameSaved) {
+			gameTilesPlayer = await GameTileService.GetGameTilesAsync();
+			gameTilesEnemy = await GameTileService.GetGameTilesAsync();
+			GameConfig gameConfig = await BattleShipAccess.LoadGame(username);
+			shipTypePlayer = 0;
+			canStartShooting = true;
+			int[] tileConfigPlayer = gameConfig.PlayerConfig;
+			int[] tileConfigEnemy = gameConfig.BotConfig;
+			for (int yy = 0; yy < rows; yy++) {
+				for (int xx = 0; xx < columns; xx++) {
+					int index = yy * columns + xx;
+					GameTile gameTile = gameTilesPlayer[index];
+					switch (tileConfigPlayer[index]) {
+						case 0:
+							break;
+						case 1:
+							gameTile.ColorGrey = true;
+							break;
+						case 2:
+						case 3:
+						case 4:
+						case 5:
+						case 6:
+							gameTile.ColorBlue = true;
+							break;
+						case 7:
+						case 8:
+						case 9:
+						case 10:
+						case 11:
+							gameTile.ColorRed = true;
+							break;
+					}
+				}
+			}
+			for (int yy = 0; yy < rows; yy++) {
+				for (int xx = 0; xx < columns; xx++) {
+					int index = yy * columns + xx;
+					GameTile gameTile = gameTilesEnemy[index];
+					switch (tileConfigEnemy[index]) {
+						case 0:
+							break;
+						case 1:
+							gameTile.ColorGrey = true;
+							break;
+						case 2:
+						case 3:
+						case 4:
+						case 5:
+						case 6:
+							break;
+						case 7:
+						case 8:
+						case 9:
+						case 10:
+						case 11:
+							gameTile.ColorRed = true;
+							break;
+					}
+				}
+			}
+			await BattleShipAccess.DeleteSave(username);
+			shootingInstruction = "Game successfully loaded, you can resume playing!";
+		} else {
+			gameTilesPlayer = await GameTileService.GetGameTilesAsync();
+			gameTilesEnemy = await GameTileService.GetGameTilesAsync();
+			await BattleShipAccess.InitializeGameAsync();			
+		}
+	}
+
+	private async Task HandleClickPlayerBoard(double fakeCoord) {
+		if (shipTypePlayer > 0) {
+			int coord = (int) Math.Truncate(fakeCoord);
+			bool isVertical = !(coord < fakeCoord);
+			canPlaceShip = await CanPlayerPlaceShip(coord, shipTypePlayer, isVertical);
+			if (canPlaceShip) {
+				if (isVertical) {
+					for (int i = 0; i < shipTypePlayer; i++) {
+						gameTilesPlayer[coord].ColorBlue = true;
+						coord += columns;
+					}
+				}
+				else {
+					for (int i = 0; i < shipTypePlayer; i++) {
+						gameTilesPlayer[coord].ColorBlue = true;
+						coord++;
+					}
+				}
+				shipTypePlayer--;
+			}
+			shipPlacementInstruction = canPlaceShip ? "Ship placed!" : "You can't place your ship there!";
+			if (shipTypePlayer == 0) {
+				shipPlacementInstruction = "";
+				shootingInstruction = "The game begins";
+				canStartShooting = true;
+			}
+		}
+	}
+
+	private async Task HandleClickEnemyBoard(double coord) {
+		if (canStartShooting) {
+			int rCoord = (int) coord;
+			int x = rCoord % columns;
+			int y = rCoord / columns;
+			if (gameTilesEnemy[rCoord].ColorGrey || gameTilesEnemy[rCoord].ColorRed) {
+				shootingInstruction = "You already shot that tile!";
+				return;
+			}
+			ApiShootGameTileResults results = await BattleShipAccess.ShootTile(x, y);
+			List<Coordinate> tilesHitByBot = results.Coordinates;
+			bool shipHit = results.WasHit;
+			if (shipHit) {
+				gameTilesEnemy[rCoord].ColorRed = true;
+				shootingInstruction = "You hit an enemy ship!";
+			}
+			if (!shipHit) {
+				gameTilesEnemy[rCoord].ColorGrey = true;
+				shootingInstruction = "You missed...";
+			}
+			foreach (var coordinate in tilesHitByBot) {
+				int xx = coordinate.X;
+				int yy = coordinate.Y;
+				int bCoor = yy * columns + xx;
+				bool wasPlayerShipHit = coordinate.WasHit;
+				bool botWin = coordinate.BotWin;
+				playerWin = coordinate.PlayerWin;
+				if (playerWin) {
+					NavigationManager.NavigateTo("/WinScreen");
+				}
+				if (botWin) {
+					NavigationManager.NavigateTo("/LoseScreen");
+				}
+				if (wasPlayerShipHit) {
+					gameTilesPlayer[bCoor].ColorBlue = false;
+					gameTilesPlayer[bCoor].ColorRed = true;
+				}
+				if (!wasPlayerShipHit) {
+					gameTilesPlayer[bCoor].ColorBlue = false;
+					gameTilesPlayer[bCoor].ColorGrey = true;
+				}
+			}
+		}
+	}
+
+	private async Task<bool> CanPlayerPlaceShip(int coord, int typeOfShip, bool isVertical) {
+		int x = coord % columns;
+		int y = coord / columns;
+		return await BattleShipAccess.CanPlayerPlaceShipAsync(typeOfShip, x, y, isVertical);
+	}
+
+	private async Task SaveGame() {
+		if (shipTypePlayer  == 0) {
+			var authState = await authenticationStateTask;
+			var user = authState.User;
+			string username = user.Identity.Name;
+			string response = await BattleShipAccess.SaveGame(username);
+			saveGameMessage = response;
+			((CustomAuthenticationStateProvider) AuthenticationStateProvider).Logout();
+		}
+		else {
+			shootingInstruction = "You can't save while placing ships!";
+		}
+	}
+}

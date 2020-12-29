@@ -1,0 +1,80 @@
+﻿@page "/Instructions"
+@using BattleShipFrontEnd.Data.BattleshipData
+@inject NavigationManager NavigationManager
+@inject ICloudBattleShipAccess BattleShipAccess
+
+<div class="heading3">
+    <span>I</span>
+    <span>N</span>
+    <span>S</span>
+    <span>T</span>
+    <span>R</span>
+    <span>U</span>
+    <span>C</span>
+    <span>T</span>
+    <span>I</span>
+    <span>O</span>
+    <span>N</span>
+    <span>S</span>
+</div>
+
+<div class="middle-box">
+    <h1><b>How To play</b></h1>
+    
+    <p>
+        The game is played on four grids, two for each player. 
+        The grids are typically square – usually 10×10 – and the individual squares 
+        in the grid are identified by letter and number.
+        On one grid the player arranges ships and records the shots by the opponent.
+        On the other grid the player shoots the tiles. If a ship was hit, the tile will color
+        itself in red, if the player missed, the tile will be gray.
+    </p>
+</div>
+
+<div class="middle-box1">
+    <p>
+        Before the game begins, each player secretly arranges their ships on their primary grid. 
+        Each ship occupies a number of consecutive squares on the grid, arranged either horizontally or vertically.
+        A left mouse click places a vertical ship, while a right mouse click - horizontal.
+        The number of squares for each ship is determined by the type of the ship. 
+        There are 5 types of ships, the length of which are respectively 5, 3, 2 ,1
+        The ships cannot overlap (i.e., only one ship can occupy any given square in the grid) and the
+        ships cannot be closer than one square apart. 
+        The types and numbers of ships allowed are the same for each player.
+    </p>
+</div>
+
+@if (isGameSaved) {
+    <p class="middle-box1">You have your last game saved! Starting a new game deletes your save</p>
+    <button class="btn btn-danger p-3 buttonStartGame" @onclick="StartNewGameDeleteSaveAsync">Start a new game</button>
+    <button class="btn btn-primary p-3 buttonStartGame" @onclick="StartNewGameAsync">Continue saved game</button>
+}
+else {
+    <button class="btn btn-primary p-2 buttonStartGame" @onclick="StartNewGameAsync">Start game</button>
+}
+@code 
+{
+    private bool isGameSaved;
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+    
+    
+    protected override async Task OnInitializedAsync() {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+        string username = user.Identity.Name;
+        isGameSaved = await BattleShipAccess.CheckForSavedGame(username);
+    }
+
+    public async Task StartNewGameDeleteSaveAsync() {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+        string username = user.Identity.Name;
+        await BattleShipAccess.DeleteSave(username);
+        NavigationManager.NavigateTo("/Game");
+    }
+    
+    public void StartNewGameAsync() {
+        NavigationManager.NavigateTo("/Game");
+    }
+}
